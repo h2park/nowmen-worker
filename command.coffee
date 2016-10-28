@@ -5,6 +5,8 @@ Redis          = require 'ioredis'
 RedisNS        = require '@octoblu/redis-ns'
 Worker         = require './src/worker'
 SigtermHandler = require 'sigterm-handler'
+MeshbluConfig  = require 'meshblu-config'
+MeshbluHttp    = require 'meshblu-http'
 
 packageJSON    = require './package.json'
 
@@ -81,7 +83,13 @@ class Command
     @getWorkerClient (error, client) =>
       return @die error if error?
 
-      worker = new Worker { client, queueName: @queue_name, queueTimeout: @queue_timeout }
+      worker = new Worker {
+        MeshbluHttp,
+        meshbluConfig: new MeshbluConfig().toJSON(),
+        client,
+        queueName: @queue_name,
+        queueTimeout: @queue_timeout
+      }
       worker.run @die
 
       sigtermHandler = new SigtermHandler { events: ['SIGINT', 'SIGTERM']}

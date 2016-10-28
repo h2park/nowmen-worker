@@ -1,6 +1,8 @@
 Worker  = require '../src/worker'
 Redis   = require 'ioredis'
 RedisNS = require '@octoblu/redis-ns'
+MeshbluConfig = require 'meshblu-config'
+MeshbluHttp   = require 'meshblu-http'
 
 describe 'Worker', ->
   beforeEach (done) ->
@@ -12,7 +14,13 @@ describe 'Worker', ->
   beforeEach ->
     queueName = 'work'
     queueTimeout = 1
-    @sut = new Worker { @client, queueName, queueTimeout }
+    @sut = new Worker {
+      MeshbluHttp,
+      meshbluConfig: new MeshbluConfig().toJSON(),
+      @client,
+      queueName,
+      queueTimeout
+    }
 
   afterEach (done) ->
     @sut.stop done

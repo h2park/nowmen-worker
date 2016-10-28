@@ -1,8 +1,11 @@
 async = require 'async'
+_ = require 'lodash'
 
 class Worker
   constructor: (options={})->
-    { @client, @queueName, @queueTimeout } = options
+    { @MeshbluHttp, @meshbluConfig, @client, @queueName, @queueTimeout } = options
+    throw new Error('Worker: requires Meshblu HTTP') unless @MeshbluHttp?
+    throw new Error('Worker: requires Meshblu config') unless @meshbluConfig?
     throw new Error('Worker: requires client') unless @client?
     throw new Error('Worker: requires queueName') unless @queueName?
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
@@ -27,8 +30,25 @@ class Worker
       catch error
         return callback error
 
-      callback null, data
+      @sendMessage data, callback
+
     return # avoid returning promise
+
+  sendMessage: (data, callback) =>
+    return callback() if _.isEmpty data
+    { uuid, token, nodeId, sendTo, transactionId } = data
+
+    config = _.defaults {uuid, token}, @meshbluConfig
+    meshbluHttp = new @MeshbluHttp config
+
+    message =
+      devices: [sendTo]
+      payload:
+        from: nodeId
+        transactionId: transactionId
+        timestamp: _.now()
+
+    meshbluHttp.message message, callback
 
   run: (callback) =>
     async.doUntil @doWithNextTick, (=> @shouldStop), =>
