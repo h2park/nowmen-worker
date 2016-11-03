@@ -20,7 +20,7 @@ class Soldiers
     query  = { _id: new ObjectId(recordId) }
     update =
       $set:
-        'metadata.lastSent': moment.unix()
+        'metadata.lastSent': moment().unix()
       $inc:
         'metadata.totalSent': 1
     debug 'updating soldier', { query, update }

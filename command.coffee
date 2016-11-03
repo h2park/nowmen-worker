@@ -65,6 +65,7 @@ class Command
       @queue_name,
       @mongodb_uri,
     } = @parseOptions()
+    @meshbluConfig = new MeshbluConfig().toJSON()
 
   printHelp: =>
     options = { includeEnv: true, includeDefaults:true }
@@ -97,17 +98,18 @@ class Command
     return options
 
   run: =>
+    throw new Error 'Command: requires meshbluConfig' if _.isEmpty @meshbluConfig
     @getDatabaseClient (error, database) =>
       return @die error if error?
       @getWorkerClient (error, client) =>
         return @die error if error?
 
         worker = new Worker {
-          meshbluConfig: new MeshbluConfig().toJSON(),
+          @meshbluConfig,
           client,
+          database,
           queueName: @queue_name,
           queueTimeout: @queue_timeout
-          mongoDBUri: @mongodb_uri
         }
         worker.run @die
 
@@ -115,7 +117,7 @@ class Command
         sigtermHandler.register worker.stop
 
   getDatabaseClient: (callback) =>
-    database = mongojs @mongoDBUri
+    database = mongojs @mongodb_uri, ['soldiers']
     database.runCommand {ping: 1}, (error) =>
       return callback error if error?
 
