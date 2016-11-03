@@ -3,10 +3,10 @@ chalk          = require 'chalk'
 dashdash       = require 'dashdash'
 Redis          = require 'ioredis'
 RedisNS        = require '@octoblu/redis-ns'
+mongojs        = require 'mongojs'
 Worker         = require './src/worker'
 SigtermHandler = require 'sigterm-handler'
 MeshbluConfig  = require 'meshblu-config'
-MeshbluHttp    = require 'meshblu-http'
 
 packageJSON    = require './package.json'
 
@@ -37,6 +37,12 @@ OPTIONS = [
     help: 'BRPOP timeout (in seconds)'
   },
   {
+    names: ['mongodb-uri']
+    type: 'string'
+    env: 'MONGODB_URI'
+    help: 'MongoDB connection URI'
+  },
+  {
     names: ['help', 'h']
     type: 'bool'
     help: 'Print this help and exit.'
@@ -52,7 +58,13 @@ class Command
   constructor: ->
     process.on 'uncaughtException', @die
     @parser = dashdash.createParser({options: OPTIONS})
-    {@redis_uri, @redis_namespace, @queue_timeout, @queue_name} = @parseOptions()
+    {
+      @redis_uri,
+      @redis_namespace,
+      @queue_timeout,
+      @queue_name,
+      @mongodb_uri,
+    } = @parseOptions()
 
   printHelp: =>
     options = { includeEnv: true, includeDefaults:true }
@@ -77,23 +89,41 @@ class Command
       console.error chalk.red 'Missing required parameter --queue-name, -u, or env: QUEUE_NAME' unless options.queue_name?
       process.exit 1
 
+    unless options.mongodb_uri?
+      @printHelp()
+      console.error chalk.red 'Missing required parameter --mongodb-uri, or env: MONGODB_URI' unless options.mongodb_uri?
+      process.exit 1
+
     return options
 
   run: =>
-    @getWorkerClient (error, client) =>
+    @getDatabaseClient (error, database) =>
       return @die error if error?
+      @getWorkerClient (error, client) =>
+        return @die error if error?
 
-      worker = new Worker {
-        MeshbluHttp,
-        meshbluConfig: new MeshbluConfig().toJSON(),
-        client,
-        queueName: @queue_name,
-        queueTimeout: @queue_timeout
-      }
-      worker.run @die
+        worker = new Worker {
+          meshbluConfig: new MeshbluConfig().toJSON(),
+          client,
+          queueName: @queue_name,
+          queueTimeout: @queue_timeout
+          mongoDBUri: @mongodb_uri
+        }
+        worker.run @die
 
-      sigtermHandler = new SigtermHandler { events: ['SIGINT', 'SIGTERM']}
-      sigtermHandler.register worker.stop
+        sigtermHandler = new SigtermHandler { events: ['SIGINT', 'SIGTERM']}
+        sigtermHandler.register worker.stop
+
+  getDatabaseClient: (callback) =>
+    database = mongojs @mongoDBUri
+    database.runCommand {ping: 1}, (error) =>
+      return callback error if error?
+
+      setInterval =>
+        database.runCommand {ping: 1}, @die
+      , (10 * 1000)
+
+      callback null, database
 
   getWorkerClient: (callback) =>
     @getRedisClient @redis_uri, (error, client) =>
