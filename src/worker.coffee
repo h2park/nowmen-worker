@@ -21,9 +21,8 @@ class Worker
     # give some time for garbage collection
     process.nextTick =>
       @do (error) =>
-        setTimeout =>
+        process.nextTick =>
           callback error
-        , 100
 
   do: (callback) =>
     @client.brpop @queueName, @queueTimeout, (error, result) =>
@@ -74,7 +73,7 @@ class Worker
     , 5000
 
     interval = setInterval =>
-      return unless @isStopped
+      return unless @isStopped?
       clearInterval interval
       clearTimeout timeout
       callback()
