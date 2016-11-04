@@ -92,7 +92,7 @@ describe 'Worker', ->
             expect(record.metadata.totalSent).to.equal 1
             done()
 
-      describe 'when has been sent in the past', ->
+      describe 'when the record has been sent in the past', ->
         beforeEach (done) ->
           record =
             metadata:

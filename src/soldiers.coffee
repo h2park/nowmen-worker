@@ -7,7 +7,9 @@ class Soldiers
     @collection = database.collection 'soldiers'
 
   get: ({ recordId }, callback) =>
-    return callback null unless recordId?
+    unless recordId?
+      debug 'missing recordId'
+      return callback()
     debug 'recordId', { recordId }
     @collection.findOne { _id: new ObjectId(recordId) }, { data: true }, (error, record) =>
       return callback error if error?
@@ -16,7 +18,9 @@ class Soldiers
       callback null, record?.data
 
   update: ({ recordId }, callback) =>
-    return callback null unless recordId?
+    unless recordId?
+      debug 'missing recordId'
+      return callback()
     query  = { _id: new ObjectId(recordId) }
     update =
       $set:
@@ -27,7 +31,9 @@ class Soldiers
     @collection.update query, update, callback
 
   remove: ({ recordId }, callback) =>
-    return callback null unless recordId?
+    unless recordId?
+      debug 'missing recordId'
+      return callback()
     debug 'removing soldier', { recordId }
     @collection.remove { _id: new ObjectId(recordId) }, callback
 
