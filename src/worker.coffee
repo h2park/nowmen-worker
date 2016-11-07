@@ -30,19 +30,24 @@ class Worker
       return callback error if error?
       return callback() unless result?
 
-      [ queue, recordId ] = result
+      [ queue, rawData ] = result
+      try
+        {recordId, timestamp} = JSON.parse rawData
+      catch error
+        console.error 'Unable to parse', rawData
+        return callback error
 
       @soldiers.get { recordId }, (error, data) =>
         return callback error if error?
         return callback null unless data?
-        @sendMessage data, (error) =>
+        @sendMessage {data, timestamp}, (error) =>
           return callback error if error?
           return @soldiers.remove { recordId }, callback if data.fireOnce
           @soldiers.update { recordId }, callback
 
     return # avoid returning promise
 
-  sendMessage: (data, callback) =>
+  sendMessage: ({data, timestamp}, callback) =>
     return callback() if _.isEmpty data
     { uuid, token, nodeId, sendTo, transactionId } = data
 
@@ -57,6 +62,7 @@ class Worker
         transactionId: transactionId ? nodeId
 
     message.payload.timestamp = _.now() unless @disableSendTimestamp
+    message.payload.expectedTimestamp = timestamp
 
     overview 'messaging', message
     meshbluHttp.message message, (error) =>
