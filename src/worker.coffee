@@ -3,6 +3,7 @@ async       = require 'async'
 MeshbluHttp = require 'meshblu-http'
 Soldiers    = require './soldiers'
 debug       = require('debug')('now-man-worker:worker')
+overview    = require('debug')('now-man-worker:worker:overview')
 
 class Worker
   constructor: (options)->
@@ -14,7 +15,7 @@ class Worker
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
     throw new Error('Worker: requires database') unless database?
     @soldiers = new Soldiers { database }
-    @shouldStop = false
+    @_shouldStop = false
     @isStopped = false
 
   doWithNextTick: (callback) =>
@@ -46,6 +47,7 @@ class Worker
     { uuid, token, nodeId, sendTo, transactionId } = data
 
     config = _.defaults {uuid, token}, @meshbluConfig
+    debug 'meshblu config', config, { uuid, token }
     meshbluHttp = new MeshbluHttp config
 
     message =
@@ -56,16 +58,25 @@ class Worker
 
     message.payload.timestamp = _.now() unless @disableSendTimestamp
 
-    debug 'messaging', message
-    meshbluHttp.message message, callback
+    overview 'messaging', message
+    meshbluHttp.message message, (error) =>
+      if error?.code == 403
+        debug 'got a 403'
+        return callback null
+      callback error
 
   run: (callback) =>
-    async.doUntil @doWithNextTick, (=> @shouldStop), =>
+    async.doUntil @doWithNextTick, @shouldStop, (error) =>
+      console.error 'Worker Run Error', error if error?
       @isStopped = true
       callback null
 
+  shouldStop: =>
+    overview 'stoppping' if @_shouldStop
+    return @_shouldStop
+
   stop: (callback) =>
-    @shouldStop = true
+    @_shouldStop = true
 
     timeout = setTimeout =>
       clearInterval interval
@@ -73,7 +84,7 @@ class Worker
     , 5000
 
     interval = setInterval =>
-      return unless @isStopped?
+      return unless @isStopped
       clearInterval interval
       clearTimeout timeout
       callback()

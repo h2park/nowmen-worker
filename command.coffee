@@ -144,6 +144,7 @@ class Command
     client.once 'error', callback
 
   die: (error) =>
+    console.log 'dying...' unless error?
     return process.exit(0) unless error?
     console.error 'ERROR'
     console.error error.stack
