@@ -72,7 +72,7 @@ class Worker
       callback null
 
   shouldStop: =>
-    overview 'stoppping' if @_shouldStop
+    overview 'stopping' if @_shouldStop
     return @_shouldStop
 
   stop: (callback) =>

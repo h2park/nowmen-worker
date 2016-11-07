@@ -41,9 +41,6 @@ describe 'Worker', ->
     @collection.drop (error) =>
       done()
 
-  afterEach (done) ->
-    @sut.stop done
-
   afterEach ->
     @meshblu.destroy()
 
