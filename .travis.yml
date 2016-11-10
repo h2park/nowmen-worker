@@ -4,6 +4,9 @@ node_js:
 branches:
   only:
     - '/^v[0-9]/'
+services:
+  - redis
+  - mongodb
 after_success:
   - npm run coverage
   - 'npm run mocha:json'
