@@ -37,6 +37,13 @@ OPTIONS = [
     help: 'BRPOP timeout (in seconds)'
   },
   {
+    names: ['send-unix-timestamp', 's']
+    type: 'bool'
+    env: 'SEND_UNIX_TIMESTAMP'
+    default: false
+    help: 'If specified, send the Unix Timestamp along with the message (payload.unixTimestamp)'
+  },
+  {
     names: ['mongodb-uri']
     type: 'string'
     env: 'MONGODB_URI'
@@ -64,6 +71,7 @@ class Command
       @queue_timeout,
       @queue_name,
       @mongodb_uri,
+      @send_unix_timestamp,
     } = @parseOptions()
     @meshbluConfig = new MeshbluConfig().toJSON()
 
@@ -105,11 +113,12 @@ class Command
         return @die error if error?
 
         worker = new Worker {
-          @meshbluConfig,
-          client,
-          database,
-          queueName: @queue_name,
+          @meshbluConfig
+          client
+          database
+          queueName: @queue_name
           queueTimeout: @queue_timeout
+          sendUnixTimestamp: @send_unix_timestamp
         }
         worker.run @die
 

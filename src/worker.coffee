@@ -3,17 +3,19 @@ async       = require 'async'
 MeshbluHttp = require 'meshblu-http'
 Soldiers    = require './soldiers'
 debug       = require('debug')('now-man-worker:worker')
-overview    = require('debug')('now-man-worker:worker:overview')
+overview    = require('debug')('now-man-worker:worker')
 
 class Worker
   constructor: (options)->
     { @meshbluConfig, @client, @queueName, @queueTimeout } = options
-    { database, @disableSendTimestamp } = options
+    { database, @disableSendTimestamp, @sendUnixTimestamp } = options
+    { @consoleError } = options
     throw new Error('Worker: requires meshbluConfig') unless @meshbluConfig?
     throw new Error('Worker: requires client') unless @client?
     throw new Error('Worker: requires queueName') unless @queueName?
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
     throw new Error('Worker: requires database') unless database?
+    @consoleError ?= console.error
     @soldiers = new Soldiers { database }
     @_shouldStop = false
     @isStopped = false
@@ -41,17 +43,17 @@ class Worker
         return callback error if error?
         return callback null unless data?
         @sendMessage {data, timestamp}, (error) =>
-          return callback error if error?
+          return @handleSendMessageError { data, error }, callback if error?
           return @soldiers.remove { recordId }, callback if data.fireOnce
           @soldiers.update { recordId }, callback
 
     return # avoid returning promise
 
   sendMessage: ({data, timestamp}, callback) =>
-    return callback() if _.isEmpty data
     { uuid, token, nodeId, sendTo, transactionId } = data
 
     config = _.defaults {uuid, token}, @meshbluConfig
+    config.timeout = 3000
     debug 'meshblu config', config, { uuid, token }
     meshbluHttp = new MeshbluHttp config
 
@@ -62,20 +64,27 @@ class Worker
         transactionId: transactionId ? nodeId
 
     message.payload.timestamp = _.now() unless @disableSendTimestamp
-    message.payload.expectedTimestamp = timestamp
+    message.payload.unixTimestamp = timestamp if @sendUnixTimestamp
 
     overview 'messaging', message
     meshbluHttp.message message, (error) =>
-      if error?.code == 403
-        debug 'got a 403'
-        return callback null
       callback error
+
+  handleSendMessageError: ({ error, data }, callback) =>
+    { sendTo, nodeId } = data
+    if error?.code == 'ESOCKETTIMEDOUT'
+      @consoleError 'Send message timeout', { sendTo, nodeId }
+      return callback null
+    if error?.code?
+      @consoleError "Send message #{error?.code}", { sendTo, nodeId }
+      return callback null
+    return callback error
 
   run: (callback) =>
     async.doUntil @doWithNextTick, @shouldStop, (error) =>
       console.error 'Worker Run Error', error if error?
       @isStopped = true
-      callback null
+      callback error
 
   shouldStop: =>
     overview 'stopping' if @_shouldStop

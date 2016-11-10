@@ -23,8 +23,10 @@ describe 'Worker', ->
 
     queueName = 'work'
     queueTimeout = 1
+    @consoleError = sinon.spy()
     @sut = new Worker {
       disableSendTimestamp: true
+      sendUnixTimestamp: true
       meshbluConfig:
         uuid: 'the-now-man-uuid'
         token: 'the-now-man-token'
@@ -34,7 +36,8 @@ describe 'Worker', ->
       @client,
       database
       queueName,
-      queueTimeout
+      queueTimeout,
+      @consoleError,
     }
 
   beforeEach (done) ->
@@ -45,7 +48,7 @@ describe 'Worker', ->
     @meshblu.destroy()
 
   describe '->do', ->
-    describe 'when a valid job queued', ->
+    describe 'when a job queued', ->
       describe 'when a transactionId is passed', ->
         beforeEach (done) ->
           record =
@@ -60,7 +63,7 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', @recordId, done
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
             return # stupid promises
 
         beforeEach (done) ->
@@ -73,6 +76,7 @@ describe 'Worker', ->
               payload:
                 from: 'the-node-id'
                 transactionId: 'the-transaction-id'
+                unixTimestamp: 'some-timestamp'
             }
             .reply 201
 
@@ -87,6 +91,189 @@ describe 'Worker', ->
             return done error if error?
             expect(record.metadata.lastSent).to.exist
             expect(record.metadata.totalSent).to.equal 1
+            done()
+
+      describe 'when the requests times out', ->
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          @timeout 4000
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .delay 3100
+            .reply 201
+
+          @sut.do (error) =>
+            done error
+
+        it 'should log the error', ->
+          expect(@consoleError).to.have.been.calledWith 'Send message timeout', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
+
+        it 'should not update the record', (done) ->
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.equal 1
+            done()
+
+      describe 'when the requests is forbidden', ->
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .reply 403
+
+          @sut.do (error) =>
+            done error
+
+        it 'should call send message', ->
+          @sendMessage.done()
+
+        it 'should log the error', ->
+          expect(@consoleError).to.have.been.calledWith 'Send message 403', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
+
+        it 'should not update the record', (done) ->
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.equal 1
+            done()
+
+      describe 'when the requests is a 500', ->
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .reply 500
+
+          @sut.do (error) =>
+            done error
+
+        it 'should call send message', ->
+          @sendMessage.done()
+
+        it 'should log the error', ->
+          expect(@consoleError).to.have.been.calledWith 'Send message 500', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
+
+        it 'should not update the record', (done) ->
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.equal 1
+            done()
+
+      describe 'when the requests is a 503', ->
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .reply 503
+
+          @sut.do (error) =>
+            done error
+
+        it 'should call send message', ->
+          @sendMessage.done()
+
+        it 'should log the error', ->
+          expect(@consoleError).to.have.been.calledWith 'Send message 503', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
+
+        it 'should not update the record', (done) ->
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.equal 1
             done()
 
       describe 'when the record has been sent in the past', ->
@@ -105,7 +292,7 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', @recordId, done
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
             return # stupid promises
 
         beforeEach (done) ->
@@ -118,6 +305,7 @@ describe 'Worker', ->
               payload:
                 from: 'the-node-id'
                 transactionId: 'the-transaction-id'
+                unixTimestamp: 'some-timestamp'
             }
             .reply 201
 
@@ -147,7 +335,7 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', @recordId, done
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
             return # stupid promises
 
         beforeEach (done) ->
@@ -160,6 +348,7 @@ describe 'Worker', ->
               payload:
                 from: 'the-node-id'
                 transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
             }
             .reply 201
 
@@ -190,7 +379,7 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', @recordId, done
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
             return # stupid promises
 
         beforeEach (done) ->
@@ -203,6 +392,7 @@ describe 'Worker', ->
               payload:
                 from: 'the-node-id'
                 transactionId: 'the-node-id'
+                unixTimestamp: 'some-timestamp'
             }
             .reply 201
 
@@ -220,7 +410,7 @@ describe 'Worker', ->
 
     describe 'when a deleted job queued', ->
       beforeEach (done) ->
-        @client.lpush 'work', new ObjectId(), done
+        @client.lpush 'work', JSON.stringify({recordId:new ObjectId(),timestamp:'who-cares'}), done
         return # stupid promises
 
       beforeEach (done) ->
