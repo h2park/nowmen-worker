@@ -2,8 +2,8 @@ _           = require 'lodash'
 async       = require 'async'
 MeshbluHttp = require 'meshblu-http'
 Soldiers    = require './soldiers'
-debug       = require('debug')('now-man-worker:worker')
-overview    = require('debug')('now-man-worker:worker')
+debug       = require('debug')('nowmen-worker:worker')
+overview    = require('debug')('nowmen-worker:worker')
 
 class Worker
   constructor: (options)->

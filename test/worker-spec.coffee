@@ -11,14 +11,14 @@ describe 'Worker', ->
   beforeEach (done) ->
     client = new Redis 'localhost', { dropBufferSupport: true }
     client.on 'ready', =>
-      @client = new RedisNS 'test-now-man-worker', client
+      @client = new RedisNS 'test-nowmen-worker', client
       @client.del 'work'
       done()
 
   beforeEach ->
     @meshblu = shmock 0xd00d
     enableDestroy @meshblu
-    database = mongojs 'the-now-man-worker-test', ['soldiers']
+    database = mongojs 'the-nowmen-worker-test', ['soldiers']
     @collection = database.collection 'soldiers'
 
     queueName = 'work'
@@ -28,8 +28,8 @@ describe 'Worker', ->
       disableSendTimestamp: true
       sendUnixTimestamp: true
       meshbluConfig:
-        uuid: 'the-now-man-uuid'
-        token: 'the-now-man-token'
+        uuid: 'the-nowmen-uuid'
+        token: 'the-nowmen-token'
         hostname: 'localhost'
         port: 0xd00d
         protocol: 'http'

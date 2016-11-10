@@ -77,7 +77,7 @@ class Command
 
   printHelp: =>
     options = { includeEnv: true, includeDefaults:true }
-    console.log "usage: now-man-worker [OPTIONS]\noptions:\n#{@parser.help(options)}"
+    console.log "usage: nowmen-worker [OPTIONS]\noptions:\n#{@parser.help(options)}"
 
   parseOptions: =>
     options = @parser.parse(process.argv)

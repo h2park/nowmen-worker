@@ -1,7 +1,7 @@
 { ObjectId } = require 'mongojs'
 moment       = require 'moment'
-debug        = require('debug')('now-man-worker:soldiers')
-overview     = require('debug')('now-man-worker:soldiers')
+debug        = require('debug')('nowmen-worker:soldiers')
+overview     = require('debug')('nowmen-worker:soldiers')
 
 class Soldiers
   constructor: ({ database }) ->

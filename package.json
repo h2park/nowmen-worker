@@ -1,12 +1,12 @@
 {
-  "name": "now-man-worker",
+  "name": "nowmen-worker",
   "version": "1.0.0",
-  "description": "now-man-worker",
+  "description": "nowmen-worker",
   "keywords": [
     "worker"
   ],
-  "homepage": "https://github.com/octoblu/now-man-worker",
-  "bugs": "https://github.com/octoblu/now-man-worker/issues",
+  "homepage": "https://github.com/octoblu/nowmen-worker",
+  "bugs": "https://github.com/octoblu/nowmen-worker/issues",
   "author": {
     "name": "Octoblu",
     "url": "https://github.com/octoblu"
@@ -14,7 +14,7 @@
   "bin": "command.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/octoblu/now-man-worker.git"
+    "url": "https://github.com/octoblu/nowmen-worker.git"
   },
   "scripts": {
     "start": "node command.js",

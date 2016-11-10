@@ -1,17 +1,17 @@
-# now-man-worker
+# nowmen-worker
 
-[![Build Status](https://travis-ci.org/https://github.com/octoblu/now-man-worker.svg?branch=master)](https://travis-ci.org/https://github.com/octoblu/now-man-worker)
-[![Test Coverage](https://codecov.io/gh/https://github.com/octoblu/now-man-worker/branch/master/graph/badge.svg)](https://codecov.io/gh/https://github.com/octoblu/now-man-worker)
-[![Dependency status](http://img.shields.io/david/https://github.com/octoblu/now-man-worker.svg?style=flat)](https://david-dm.org/https://github.com/octoblu/now-man-worker)
-[![devDependency Status](http://img.shields.io/david/dev/https://github.com/octoblu/now-man-worker.svg?style=flat)](https://david-dm.org/https://github.com/octoblu/now-man-worker#info=devDependencies)
+[![Build Status](https://travis-ci.org/https://github.com/octoblu/nowmen-worker.svg?branch=master)](https://travis-ci.org/https://github.com/octoblu/nowmen-worker)
+[![Test Coverage](https://codecov.io/gh/https://github.com/octoblu/nowmen-worker/branch/master/graph/badge.svg)](https://codecov.io/gh/https://github.com/octoblu/nowmen-worker)
+[![Dependency status](http://img.shields.io/david/https://github.com/octoblu/nowmen-worker.svg?style=flat)](https://david-dm.org/https://github.com/octoblu/nowmen-worker)
+[![devDependency Status](http://img.shields.io/david/dev/https://github.com/octoblu/nowmen-worker.svg?style=flat)](https://david-dm.org/https://github.com/octoblu/nowmen-worker#info=devDependencies)
 [![Slack Status](http://community-slack.octoblu.com/badge.svg)](http://community-slack.octoblu.com)
 
-[![NPM](https://nodei.co/npm/now-man-worker.svg?style=flat)](https://npmjs.org/package/now-man-worker)
+[![NPM](https://nodei.co/npm/nowmen-worker.svg?style=flat)](https://npmjs.org/package/nowmen-worker)
 
 ## Installing
 
 ```bash
-$ npm install now-man-worker
+$ npm install nowmen-worker
 ```
 
 ### Usage
