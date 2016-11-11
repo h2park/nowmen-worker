@@ -347,7 +347,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 201

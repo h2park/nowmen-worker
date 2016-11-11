@@ -61,7 +61,8 @@ class Worker
       devices: [sendTo]
       payload:
         from: nodeId
-        transactionId: transactionId ? nodeId
+
+    message.payload.transactionId = transactionId if transactionId
 
     message.payload.timestamp = _.now() unless @disableSendTimestamp
     message.payload.unixTimestamp = timestamp if @sendUnixTimestamp
