@@ -37,6 +37,7 @@ describe 'Worker', ->
       database
       queueName,
       queueTimeout,
+      timeout: 1000,
       @consoleError,
     }
 
@@ -110,7 +111,6 @@ describe 'Worker', ->
             return # stupid promises
 
         beforeEach (done) ->
-          @timeout 4000
           intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
           @sendMessage = @meshblu
             .post '/messages'
@@ -121,7 +121,7 @@ describe 'Worker', ->
                 from: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
-            .delay 3100
+            .delay 1100
             .reply 201
 
           @sut.do (error) =>
@@ -173,13 +173,12 @@ describe 'Worker', ->
           @sendMessage.done()
 
         it 'should log the error', ->
-          expect(@consoleError).to.have.been.calledWith 'Send message 403', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
+          expect(@consoleError).to.have.been.calledWith 'Send message forbidden (Removing record)', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
 
         it 'should not update the record', (done) ->
           @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
             return done error if error?
-            expect(record.metadata.lastSent).to.not.exist
-            expect(record.metadata.totalSent).to.not.equal 1
+            expect(record).to.not.exist
             done()
 
       describe 'when the requests is a 500', ->

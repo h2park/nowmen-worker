@@ -9,12 +9,13 @@ class Worker
   constructor: (options)->
     { @meshbluConfig, @client, @queueName, @queueTimeout } = options
     { database, @disableSendTimestamp, @sendUnixTimestamp } = options
-    { @consoleError } = options
+    { @consoleError, @timeout } = options
     throw new Error('Worker: requires meshbluConfig') unless @meshbluConfig?
     throw new Error('Worker: requires client') unless @client?
     throw new Error('Worker: requires queueName') unless @queueName?
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
     throw new Error('Worker: requires database') unless database?
+    @timeout ?= 5000
     @consoleError ?= console.error
     @soldiers = new Soldiers { database }
     @_shouldStop = false
@@ -43,7 +44,7 @@ class Worker
         return callback error if error?
         return callback null unless data?
         @sendMessage {data, timestamp}, (error) =>
-          return @handleSendMessageError { data, error }, callback if error?
+          return @handleSendMessageError { recordId, data, error }, callback if error?
           return @soldiers.remove { recordId }, callback if data.fireOnce
           @soldiers.update { recordId }, callback
 
@@ -53,7 +54,7 @@ class Worker
     { uuid, token, nodeId, sendTo, transactionId } = data
 
     config = _.defaults {uuid, token}, @meshbluConfig
-    config.timeout = 3000
+    config.timeout = @timeout
     debug 'meshblu config', config, { uuid, token }
     meshbluHttp = new MeshbluHttp config
 
@@ -71,11 +72,14 @@ class Worker
     meshbluHttp.message message, (error) =>
       callback error
 
-  handleSendMessageError: ({ error, data }, callback) =>
+  handleSendMessageError: ({ error, recordId, data }, callback) =>
     { sendTo, nodeId } = data
     if error?.code == 'ESOCKETTIMEDOUT'
       @consoleError 'Send message timeout', { sendTo, nodeId }
       return callback null
+    if error?.code == 403
+      @consoleError 'Send message forbidden (Removing record)', { sendTo, nodeId }
+      return @soldiers.remove { recordId }, callback
     if error?.code?
       @consoleError "Send message #{error?.code}", { sendTo, nodeId }
       return callback null
