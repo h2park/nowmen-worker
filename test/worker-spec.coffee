@@ -119,7 +119,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .delay 3100
@@ -163,7 +162,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 403
@@ -209,7 +207,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 500
@@ -255,7 +252,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 503
@@ -285,7 +281,6 @@ describe 'Worker', ->
               totalSent: 3
             data:
               nodeId: 'the-node-id'
-              transactionId: 'the-transaction-id'
               uuid: 'the-interval-uuid'
               token: 'the-interval-token'
               sendTo: 'the-flow-uuid'
@@ -304,7 +299,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-transaction-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 201
@@ -390,7 +384,6 @@ describe 'Worker', ->
               devices: ['the-flow-uuid']
               payload:
                 from: 'the-node-id'
-                transactionId: 'the-node-id'
                 unixTimestamp: 'some-timestamp'
             }
             .reply 201

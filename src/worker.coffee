@@ -83,7 +83,7 @@ class Worker
 
   run: (callback) =>
     async.doUntil @doWithNextTick, @shouldStop, (error) =>
-      console.error 'Worker Run Error', error if error?
+      @consoleError 'Worker Run Error', error if error?
       @isStopped = true
       callback error
 
