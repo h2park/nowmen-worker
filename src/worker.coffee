@@ -10,19 +10,22 @@ class Worker
     { @meshbluConfig, @client, @queueName, @queueTimeout } = options
     { database, @disableSendTimestamp, @sendUnixTimestamp } = options
     { @consoleError, @timeout } = options
-    { concurrency } = options
+    { concurrency, @requestTimeout } = options
     throw new Error('Worker: requires meshbluConfig') unless @meshbluConfig?
     throw new Error('Worker: requires client') unless @client?
     throw new Error('Worker: requires queueName') unless @queueName?
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
     throw new Error('Worker: requires database') unless database?
-    @timeout ?= 3000
-    @consoleError ?= console.error
+    @requestTimeout ?= 5000
+    @consoleError ?= @_consoleError
     @soldiers = new Soldiers { database }
     @_shouldStop = false
     @isStopped = false
     concurrency ?= 1
     @queue = async.queue @doTask, concurrency
+
+  _consoleError: =>
+    console.error new Date().toString(), arguments...
 
   doWithNextTick: (callback) =>
     # give some time for garbage collection
@@ -35,7 +38,6 @@ class Worker
     debug 'process do'
     @client.brpop @queueName, @queueTimeout, (error, result) =>
       return callback error if error?
-      @queue.push { recordId: '582cd44e274cc2d840d17554', timestamp: 'test' }
       return callback() unless result?
       [ _queue, rawData ] = result
       try
@@ -70,7 +72,7 @@ class Worker
     { uuid, token, nodeId, sendTo, transactionId } = data
 
     config = _.defaults {uuid, token}, @meshbluConfig
-    config.timeout = @timeout
+    config.timeout = @requestTimeout
     debug 'meshblu config', config, { uuid, token }
     meshbluHttp = new MeshbluHttp config
 
@@ -114,5 +116,6 @@ class Worker
   stop: (callback) =>
     @_shouldStop = true
     @queue.drain = callback
+    _.delay @queue.kill, 1000
 
 module.exports = Worker

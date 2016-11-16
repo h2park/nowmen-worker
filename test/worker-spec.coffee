@@ -37,7 +37,7 @@ describe 'Worker', ->
       database
       queueName,
       queueTimeout,
-      timeout: 1000,
+      requestTimeout: 1000,
       @consoleError,
     }
 

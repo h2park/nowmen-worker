@@ -12,29 +12,36 @@ packageJSON    = require './package.json'
 
 OPTIONS = [
   {
-    names: ['redis-uri', 'r']
+    names: ['redis-uri']
     type: 'string'
     env: 'REDIS_URI'
     help: 'Redis URI'
   },
   {
-    names: ['redis-namespace', 'n']
+    names: ['redis-namespace']
     type: 'string'
     env: 'REDIS_NAMESPACE'
     help: 'Redis namespace for redis-ns'
   },
   {
-    names: ['queue-name', 'q']
+    names: ['queue-name']
     type: 'string'
     env: 'QUEUE_NAME'
     help: 'Name of Redis work queue'
   },
   {
-    names: ['queue-timeout', 't']
+    names: ['queue-timeout']
     type: 'positiveInteger'
     env: 'QUEUE_TIMEOUT'
     default: 30
     help: 'BRPOP timeout (in seconds)'
+  },
+  {
+    names: ['request-timeout']
+    type: 'positiveInteger'
+    env: 'REQUEST_TIMEOUT'
+    default: 5
+    help: 'Request Timeout (in seconds)'
   },
   {
     names: ['concurrency']
@@ -44,7 +51,7 @@ OPTIONS = [
     help: 'Number of jobs to run at once'
   },
   {
-    names: ['send-unix-timestamp', 's']
+    names: ['send-unix-timestamp']
     type: 'bool'
     env: 'SEND_UNIX_TIMESTAMP'
     default: false
@@ -80,6 +87,7 @@ class Command
       @mongodb_uri,
       @send_unix_timestamp,
       @concurrency,
+      @request_timeout,
     } = @parseOptions()
     @meshbluConfig = new MeshbluConfig().toJSON()
 
@@ -126,6 +134,7 @@ class Command
           database
           queueName: @queue_name
           queueTimeout: @queue_timeout
+          requestTimeout: (@request_timeout * 1000)
           sendUnixTimestamp: @send_unix_timestamp
         }
         worker.run @die
