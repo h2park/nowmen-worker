@@ -37,6 +37,13 @@ OPTIONS = [
     help: 'BRPOP timeout (in seconds)'
   },
   {
+    names: ['concurrency']
+    type: 'positiveInteger'
+    env: 'WORK_CONCURRENCY'
+    default: 1
+    help: 'Number of jobs to run at once'
+  },
+  {
     names: ['send-unix-timestamp', 's']
     type: 'bool'
     env: 'SEND_UNIX_TIMESTAMP'
@@ -72,6 +79,7 @@ class Command
       @queue_name,
       @mongodb_uri,
       @send_unix_timestamp,
+      @concurrency,
     } = @parseOptions()
     @meshbluConfig = new MeshbluConfig().toJSON()
 

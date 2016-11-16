@@ -10,16 +10,19 @@ class Worker
     { @meshbluConfig, @client, @queueName, @queueTimeout } = options
     { database, @disableSendTimestamp, @sendUnixTimestamp } = options
     { @consoleError, @timeout } = options
+    { concurrency } = options
     throw new Error('Worker: requires meshbluConfig') unless @meshbluConfig?
     throw new Error('Worker: requires client') unless @client?
     throw new Error('Worker: requires queueName') unless @queueName?
     throw new Error('Worker: requires queueTimeout') unless @queueTimeout?
     throw new Error('Worker: requires database') unless database?
-    @timeout ?= 5000
+    @timeout ?= 3000
     @consoleError ?= console.error
     @soldiers = new Soldiers { database }
     @_shouldStop = false
     @isStopped = false
+    concurrency ?= 1
+    @queue = async.queue @doTask, concurrency
 
   doWithNextTick: (callback) =>
     # give some time for garbage collection
@@ -29,26 +32,39 @@ class Worker
           callback error
 
   do: (callback) =>
+    debug 'process do'
     @client.brpop @queueName, @queueTimeout, (error, result) =>
       return callback error if error?
+      @queue.push { recordId: '582cd44e274cc2d840d17554', timestamp: 'test' }
       return callback() unless result?
-
-      [ queue, rawData ] = result
+      [ _queue, rawData ] = result
       try
-        {recordId, timestamp} = JSON.parse rawData
+        { recordId, timestamp } = JSON.parse rawData
       catch error
         console.error 'Unable to parse', rawData
-        return callback error
-
-      @soldiers.get { recordId }, (error, data) =>
-        return callback error if error?
-        return callback null unless data?
-        @sendMessage {data, timestamp}, (error) =>
-          return @handleSendMessageError { recordId, data, error }, callback if error?
-          return @soldiers.remove { recordId }, callback if data.fireOnce
-          @soldiers.update { recordId }, callback
-
+        @queue.drain = =>
+          debug 'drained...'
+          callback error
+        return
+      debug 'insert into queue'
+      @queue.push { recordId, timestamp }
+      callback null
     return # avoid returning promise
+
+  doAndDrain: (callback) =>
+    @do (error) =>
+      return callback error if error?
+      @queue.drain = callback
+
+  doTask: ({ recordId, timestamp }, callback) =>
+    debug 'process queue task'
+    @soldiers.get { recordId }, (error, data) =>
+      return callback error if error?
+      return callback null unless data?
+      @sendMessage {data, timestamp}, (error) =>
+        return @handleSendMessageError { recordId, data, error }, callback if error?
+        return @soldiers.remove { recordId }, callback if data.fireOnce
+        @soldiers.update { recordId }, callback
 
   sendMessage: ({data, timestamp}, callback) =>
     { uuid, token, nodeId, sendTo, transactionId } = data
@@ -97,17 +113,6 @@ class Worker
 
   stop: (callback) =>
     @_shouldStop = true
-
-    timeout = setTimeout =>
-      clearInterval interval
-      callback new Error 'Stop Timeout Expired'
-    , 5000
-
-    interval = setInterval =>
-      return unless @isStopped
-      clearInterval interval
-      clearTimeout timeout
-      callback()
-    , 250
+    @queue.drain = callback
 
 module.exports = Worker

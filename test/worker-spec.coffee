@@ -48,7 +48,7 @@ describe 'Worker', ->
   afterEach ->
     @meshblu.destroy()
 
-  describe '->do', ->
+  describe '->doAndDrain', ->
     describe 'when a job queued', ->
       describe 'when a transactionId is passed', ->
         beforeEach (done) ->
@@ -81,7 +81,7 @@ describe 'Worker', ->
             }
             .reply 201
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should send the message', ->
@@ -124,7 +124,7 @@ describe 'Worker', ->
             .delay 1100
             .reply 201
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should log the error', ->
@@ -166,7 +166,7 @@ describe 'Worker', ->
             }
             .reply 403
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should call send message', ->
@@ -210,7 +210,7 @@ describe 'Worker', ->
             }
             .reply 500
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should call send message', ->
@@ -255,7 +255,7 @@ describe 'Worker', ->
             }
             .reply 503
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should call send message', ->
@@ -302,7 +302,7 @@ describe 'Worker', ->
             }
             .reply 201
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should send the message', ->
@@ -344,7 +344,7 @@ describe 'Worker', ->
             }
             .reply 201
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should send the message', ->
@@ -387,7 +387,7 @@ describe 'Worker', ->
             }
             .reply 201
 
-          @sut.do (error) =>
+          @sut.doAndDrain (error) =>
             done error
 
         it 'should send the message', ->
@@ -405,7 +405,7 @@ describe 'Worker', ->
         return # stupid promises
 
       beforeEach (done) ->
-        @sut.do (@error) => done()
+        @sut.doAndDrain (@error) => done()
 
       it 'should not blow up', ->
         expect(@error).to.not.exist
