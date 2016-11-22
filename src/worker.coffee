@@ -95,9 +95,6 @@ class Worker
     if error?.code == 'ESOCKETTIMEDOUT'
       @consoleError 'Send message timeout', { sendTo, nodeId }
       return callback null
-    if error?.code == 403
-      @consoleError 'Send message forbidden (Removing record)', { sendTo, nodeId }
-      return @soldiers.remove { recordId }, callback
     if error?.code?
       @consoleError "Send message #{error?.code}", { sendTo, nodeId }
       return callback null

@@ -137,50 +137,6 @@ describe 'Worker', ->
             expect(record.metadata.totalSent).to.not.equal 1
             done()
 
-      describe 'when the requests is forbidden', ->
-        beforeEach (done) ->
-          record =
-            metadata:
-              who: 'cares'
-            data:
-              nodeId: 'the-node-id'
-              uuid: 'the-interval-uuid'
-              token: 'the-interval-token'
-              sendTo: 'the-flow-uuid'
-          @collection.insert record, (error, record) =>
-            return done error if error?
-            @recordId = record._id.toString()
-            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp'}), done
-            return # stupid promises
-
-        beforeEach (done) ->
-          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
-          @sendMessage = @meshblu
-            .post '/messages'
-            .set 'Authorization', "Basic #{intervalAuth}"
-            .send {
-              devices: ['the-flow-uuid']
-              payload:
-                from: 'the-node-id'
-                unixTimestamp: 'some-timestamp'
-            }
-            .reply 403
-
-          @sut.doAndDrain (error) =>
-            done error
-
-        it 'should call send message', ->
-          @sendMessage.done()
-
-        it 'should log the error', ->
-          expect(@consoleError).to.have.been.calledWith 'Send message forbidden (Removing record)', { sendTo: 'the-flow-uuid', nodeId: 'the-node-id' }
-
-        it 'should not update the record', (done) ->
-          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
-            return done error if error?
-            expect(record).to.not.exist
-            done()
-
       describe 'when the requests is a 500', ->
         beforeEach (done) ->
           record =
