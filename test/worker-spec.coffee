@@ -94,6 +94,96 @@ describe 'Worker', ->
             expect(record.metadata.totalSent).to.equal 1
             done()
 
+      describe 'when a uuid is passed', ->
+        beforeEach (done) ->
+          record =
+            uuid: 'some-uuid'
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              transactionId: 'the-transaction-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({timestamp:'some-timestamp',uuid: 'some-uuid'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-transaction-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .reply 201
+
+          @sut.doAndDrain (error) =>
+            done error
+
+        it 'should send the message', ->
+          @sendMessage.done()
+
+        it 'should update the record', (done) ->
+          @collection.findOne { uuid: 'some-uuid' }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.exist
+            expect(record.metadata.totalSent).to.equal 1
+            done()
+
+      describe 'when a uuid and recordId are passed', ->
+        beforeEach (done) ->
+          record =
+            uuid: 'some-uuid'
+            metadata:
+              who: 'cares'
+            data:
+              nodeId: 'the-node-id'
+              transactionId: 'the-transaction-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @recordId = record._id.toString()
+            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp',uuid: 'some-uuid'}), done
+            return # stupid promises
+
+        beforeEach (done) ->
+          intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
+          @sendMessage = @meshblu
+            .post '/messages'
+            .set 'Authorization', "Basic #{intervalAuth}"
+            .send {
+              devices: ['the-flow-uuid']
+              payload:
+                from: 'the-node-id'
+                transactionId: 'the-transaction-id'
+                unixTimestamp: 'some-timestamp'
+            }
+            .reply 201
+
+          @sut.doAndDrain (error) =>
+            done error
+
+        it 'should send the message', ->
+          @sendMessage.done()
+
+        it 'should update the record', (done) ->
+          @collection.findOne { uuid: 'some-uuid' }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.exist
+            expect(record.metadata.totalSent).to.equal 1
+            done()
+
       describe 'when the requests times out', ->
         beforeEach (done) ->
           record =

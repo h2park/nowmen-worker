@@ -7,22 +7,22 @@ class Soldiers
   constructor: ({ database }) ->
     @collection = database.collection 'soldiers'
 
-  get: ({ recordId }, callback) =>
-    unless recordId?
-      overview 'missing recordId'
+  get: ({ recordId, uuid }, callback) =>
+    unless recordId? or uuid?
+      overview 'missing id'
       return callback()
     debug 'recordId', { recordId }
-    @collection.findOne { _id: new ObjectId(recordId) }, { data: true }, (error, record) =>
+    @collection.findOne @_getQuery({ uuid, recordId }), { data: true }, (error, record) =>
       return callback error if error?
       overview 'found record', record if record?
       overview 'no record found' unless record?
       callback null, record?.data
 
-  update: ({ recordId }, callback) =>
-    unless recordId?
-      overview 'missing recordId'
+  update: ({ recordId, uuid }, callback) =>
+    unless recordId? or uuid?
+      overview 'missing id'
       return callback()
-    query  = { _id: new ObjectId(recordId) }
+    query  = @_getQuery({ uuid, recordId })
     update =
       $set:
         'metadata.lastSent': moment().unix()
@@ -31,11 +31,15 @@ class Soldiers
     overview 'updating soldier', { query, update }
     @collection.update query, update, callback
 
-  remove: ({ recordId }, callback) =>
-    unless recordId?
-      overview 'missing recordId'
+  remove: ({ recordId, uuid }, callback) =>
+    unless recordId? or uuid?
+      overview 'missing id'
       return callback()
-    overview 'removing soldier', { recordId }
-    @collection.remove { _id: new ObjectId(recordId) }, callback
+    overview 'removing soldier', { recordId, uuid }
+    @collection.remove @_getQuery({ uuid, recordId }), callback
+
+  _getQuery: ({ uuid, recordId }) =>
+    return { uuid } if uuid?
+    return { _id: new ObjectId(recordId) }
 
 module.exports = Soldiers

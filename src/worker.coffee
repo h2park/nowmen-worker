@@ -41,7 +41,7 @@ class Worker
       return callback() unless result?
       [ _queue, rawData ] = result
       try
-        { recordId, timestamp } = JSON.parse rawData
+        { recordId, timestamp, uuid } = JSON.parse rawData
       catch error
         console.error 'Unable to parse', rawData
         @queue.drain = =>
@@ -49,7 +49,7 @@ class Worker
           callback error
         return
       debug 'insert into queue'
-      @queue.push { recordId, timestamp }
+      @queue.push { recordId, uuid, timestamp }
       callback null
     return # avoid returning promise
 
@@ -58,15 +58,15 @@ class Worker
       return callback error if error?
       @queue.drain = callback
 
-  doTask: ({ recordId, timestamp }, callback) =>
+  doTask: ({ recordId, uuid, timestamp }, callback) =>
     debug 'process queue task'
-    @soldiers.get { recordId }, (error, data) =>
+    @soldiers.get { recordId, uuid }, (error, data) =>
       return callback error if error?
       return callback null unless data?
       @sendMessage {data, timestamp}, (error) =>
-        return @handleSendMessageError { recordId, data, error }, callback if error?
-        return @soldiers.remove { recordId }, callback if data.fireOnce
-        @soldiers.update { recordId }, callback
+        return @handleSendMessageError { data, error }, callback if error?
+        return @soldiers.remove { recordId, uuid }, callback if data.fireOnce
+        @soldiers.update { recordId, uuid }, callback
 
   sendMessage: ({data, timestamp}, callback) =>
     { uuid, token, nodeId, sendTo, transactionId } = data
@@ -90,7 +90,7 @@ class Worker
     meshbluHttp.message message, (error) =>
       callback error
 
-  handleSendMessageError: ({ error, recordId, data }, callback) =>
+  handleSendMessageError: ({ error, data }, callback) =>
     { sendTo, nodeId } = data
     if error?.code == 'ESOCKETTIMEDOUT'
       @consoleError 'Send message timeout', { sendTo, nodeId }
