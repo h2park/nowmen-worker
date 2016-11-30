@@ -48,7 +48,7 @@ class Worker
           debug 'drained...'
           callback error
         return
-      debug 'insert into queue'
+      debug 'insert into queue', { recordId, uuid, timestamp }
       @queue.push { recordId, uuid, timestamp }
       callback null
     return # avoid returning promise

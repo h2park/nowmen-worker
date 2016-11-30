@@ -42,8 +42,7 @@ describe 'Worker', ->
     }
 
   beforeEach (done) ->
-    @collection.drop (error) =>
-      done()
+    @collection.remove done
 
   afterEach ->
     @meshblu.destroy()
@@ -109,8 +108,26 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', JSON.stringify({timestamp:'some-timestamp',uuid: 'some-uuid'}), done
-            return # stupid promises
+            done error
+
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'not-this-one'
+            data:
+              nodeId: 'the-node-id'
+              transactionId: 'the-transaction-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @notThisId = record._id.toString()
+            done error
+
+        beforeEach (done) ->
+          @client.lpush 'work', JSON.stringify({timestamp:'some-timestamp',uuid: 'some-uuid'}), done
+          return # stupid promises
 
         beforeEach (done) ->
           intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
@@ -133,10 +150,17 @@ describe 'Worker', ->
           @sendMessage.done()
 
         it 'should update the record', (done) ->
-          @collection.findOne { uuid: 'some-uuid' }, (error, record) =>
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
             return done error if error?
             expect(record.metadata.lastSent).to.exist
             expect(record.metadata.totalSent).to.equal 1
+            done()
+
+        it 'should not update this record', (done) ->
+          @collection.findOne { _id: new ObjectId(@notThisId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.exist
             done()
 
       describe 'when a uuid and recordId are passed', ->
@@ -154,8 +178,26 @@ describe 'Worker', ->
           @collection.insert record, (error, record) =>
             return done error if error?
             @recordId = record._id.toString()
-            @client.lpush 'work', JSON.stringify({@recordId,timestamp:'some-timestamp',uuid: 'some-uuid'}), done
-            return # stupid promises
+            done error
+
+        beforeEach (done) ->
+          record =
+            metadata:
+              who: 'not-this-one'
+            data:
+              nodeId: 'the-node-id'
+              transactionId: 'the-transaction-id'
+              uuid: 'the-interval-uuid'
+              token: 'the-interval-token'
+              sendTo: 'the-flow-uuid'
+          @collection.insert record, (error, record) =>
+            return done error if error?
+            @notThisId = record._id.toString()
+            done error
+
+        beforeEach (done) ->
+          @client.lpush 'work', JSON.stringify({timestamp:'some-timestamp',uuid: 'some-uuid',@recordId}), done
+          return # stupid promises
 
         beforeEach (done) ->
           intervalAuth = new Buffer('the-interval-uuid:the-interval-token').toString('base64')
@@ -178,10 +220,17 @@ describe 'Worker', ->
           @sendMessage.done()
 
         it 'should update the record', (done) ->
-          @collection.findOne { uuid: 'some-uuid' }, (error, record) =>
+          @collection.findOne { _id: new ObjectId(@recordId) }, (error, record) =>
             return done error if error?
             expect(record.metadata.lastSent).to.exist
             expect(record.metadata.totalSent).to.equal 1
+            done()
+
+        it 'should not update this record', (done) ->
+          @collection.findOne { _id: new ObjectId(@notThisId) }, (error, record) =>
+            return done error if error?
+            expect(record.metadata.lastSent).to.not.exist
+            expect(record.metadata.totalSent).to.not.exist
             done()
 
       describe 'when the requests times out', ->
