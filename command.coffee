@@ -22,12 +22,14 @@ OPTIONS = [
     type: 'string'
     env: 'REDIS_NAMESPACE'
     help: 'Redis namespace for redis-ns'
+    default: 'minutement'
   },
   {
     names: ['queue-name']
     type: 'string'
     env: 'QUEUE_NAME'
     help: 'Name of Redis work queue'
+    default: 'nowmen'
   },
   {
     names: ['queue-timeout']
