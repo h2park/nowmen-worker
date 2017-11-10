@@ -22,7 +22,7 @@ OPTIONS = [
     type: 'string'
     env: 'REDIS_NAMESPACE'
     help: 'Redis namespace for redis-ns'
-    default: 'minutement'
+    default: 'minutemen'
   },
   {
     names: ['queue-name']
